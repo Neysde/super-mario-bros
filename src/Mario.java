@@ -13,7 +13,7 @@ public class Mario {
     int x;
     int y;
     double speedY;
-    double speedX=7.0;
+    double speedX=9.0;
     double gravity=2.0;
 
     boolean isSPressed=false;

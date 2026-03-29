@@ -52,6 +52,7 @@ public class Main {
 
         Enemy enemy0 = new Enemy(340, 580, 40, 0, 260, 420); //new Enemy(x, y, size, direction, x1, x2)
         Enemy enemy1 = new Enemy(440, 300, 40, 1, 380, 500); //new Enemy(x, y, size, direction, x1, x2)
+        Enemy enemy2 = new Enemy(520, 620, 40, 1, 460, 580,600); //new Enemy(x, y, size, direction, x1, x2)
 
         String clue0 = "Go to the exit pipe!";
         String clue1 = "Do not mess with mushrooms!";
@@ -65,8 +66,6 @@ public class Main {
         Color marioRed = new Color(228, 0, 18);
         Color marioGold = new Color(255, 183, 0);
         Color marioLightBlue = new Color(107, 140, 255);
-<<<<<<< HEAD
-=======
 
         // reads map element location files and saves their locations into their arrays
         int[][] obstacles = new int[191][4];
@@ -79,22 +78,24 @@ public class Main {
         readFile(coins,"./data/coins.txt");
 
 
-        Map map = new Map(obstacles,pipes,portals); // map object
+        Map map = new Map(obstacles,pipes,portals,coins); // map object
 
-        ArrayList<Enemy> enemies = new ArrayList<>(); // enemies
-
+        ArrayList<Enemy> enemies = new ArrayList<>(); // enemies in level 2 and 3
         enemies.add(enemy0);
         enemies.add(enemy1);
 
+        ArrayList<Enemy> enemiesLevel4 = new ArrayList<>(enemies); // enemies in level 4
+        enemiesLevel4.add(enemy2);
+
         ArrayList<Level> levels = new ArrayList<>(); //test levels
 
-        levels.add(new Level(1,clue0));
-        levels.add(new Level(2,enemies,clue1)); //lvl2 test
+        levels.add(new Level(1,clue0)); // level 1
+        levels.add(new Level(2,enemies,clue1)); //level 2
+        levels.add(new Level(3,enemies,clue2,coins)); // level 3
+        levels.add(new Level(4,enemiesLevel4,clue2,coins)); // level 4
 
         Game game = new Game(levels,map,width,height);
 
         game.run(skyColor,mainMenuColor0,mainMenuColor1,mainMenuColor2,marioDarkBlue,marioRed,marioGold,marioLightBlue);
-
->>>>>>> 9f7d43b (second commit)
     }
 }

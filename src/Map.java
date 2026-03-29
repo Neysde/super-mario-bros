@@ -9,10 +9,11 @@ public class Map {
     private int[][] portals;
     private int[][] coins;
 
-    Map(int[][] obstacles,int[][] pipes,int[][] portals){
+    Map(int[][] obstacles,int[][] pipes,int[][] portals, int[][] coins){
         this.obstacles=obstacles;
         this.pipes=pipes;
         this.portals=portals;
+        this.coins=coins;
     }
 
     public void draw(){
@@ -160,6 +161,25 @@ public class Map {
         int[][] lowerPipe = {pipes[2],pipes[3]};
 
         return checkCollision(nextX, mario.y,0,lowerPipe); // eliminate nextY because its mostly happening in x axis and eliminate player halfsize because this is not a regular collision check we want to give the effect of entering the pipe before displaying finish message
+    }
+
+    public int collectCoin(Mario mario) {
+        for (int i=0;i<coins.length;i++){
+
+            if (Math.abs(mario.x-coins[i][0])<=(mario.size/2.0+coins[i][2]) && Math.abs(mario.y-coins[i][1])<=(mario.size/2.0+coins[i][3])){ // checks for x and y axis collisions (obstacle[0] is the x coordinate of obstacle and obstacle[2] is the half width)
+                System.out.println(i+" collected");
+                coins[i][1]=-9999;
+                return 1;
+            }
+        }
+        return 0;
+    }
+
+    public void drawCoin(){
+        // coin draw
+        for (int i=0;i<coins.length;i++){
+            StdDraw.picture(coins[i][0],coins[i][1],"./assets/coin.png",coins[i][2]*2,coins[i][3]*2);
+        }
     }
 
 }

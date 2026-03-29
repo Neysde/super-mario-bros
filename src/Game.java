@@ -96,26 +96,28 @@ public class Game {
                 boolean isSPressed = StdDraw.isKeyPressed(KeyEvent.VK_S);
                 map.handleTeleport(mario, isSPressed);
 
+                if (currentLevel.getId()==3){
+                    coinsCollected+=map.collectCoin(mario);
+                }
+
                 if (map.isOnLowerPipe(mario) && currentLevel.getId()==1){
-                    System.out.println(currentLevel.getId()+" finished");
                     isLevelFinished=true;
                 } else if (map.isOnLowerPipe(mario) && currentLevel.getId()==2) {
                     isLevelFinished=true;
+                } else if (map.isOnLowerPipe(mario) && currentLevel.getId()==3 && coinsCollected==3) {
+                    isLevelFinished=true;
                 }
 
-                if (currentLevel.getId()==2){
-                    ArrayList<Enemy> enemies = levels.get(1).getEnemies();
-                    Enemy enemy1 = enemies.get(0);
-                    Enemy enemy2 = enemies.get(1);
+                if (currentLevel.getId()==2 || currentLevel.getId()==3 || currentLevel.getId()==4){
+                    ArrayList<Enemy> enemies = levels.get(currentLevel.getId()-1).getEnemies();
 
-                    enemy1.move();
-                    enemy2.move();
+                    for (Enemy enemy : enemies){
+                        enemy.move();
 
-                    if (!mario.isDead()){
-                        if (mario.checkEnemyCollision(enemy1)){
-                            mario.die();
-                        } else if (mario.checkEnemyCollision(enemy2)){
-                            mario.die();
+                        if (!mario.isDead()){
+                            if (mario.checkEnemyCollision(enemy)){
+                                mario.die();
+                            }
                         }
                     }
                 }
@@ -136,14 +138,23 @@ public class Game {
                     }
 
 
-                    if (currentLevel.getId()==2){
-                        ArrayList<Enemy> enemies = levels.get(1).getEnemies();
-                        enemies.get(0).draw();
-                        enemies.get(1).draw();
+                    if (currentLevel.getId()==2 || currentLevel.getId()==3 || currentLevel.getId()==4) {
+                        // draws enemies in level 2 and 3
+                        ArrayList<Enemy> enemies = levels.get(currentLevel.getId()-1).getEnemies();
+
+                        for (Enemy enemy:enemies){
+                            enemy.draw();
+                        }
+
+                        // draws coins in level 3
+                        if (currentLevel.getId()==3){
+                            map.drawCoin();
+                        }
                     }
 
+                    // draws hud
                     hud(getTime(startingTime),currentLevel.getId(),mario.getDeathCount(),marioDarkBlue,marioGold);
-                } else{
+                } else {
                     long levelFinishPauseTime=levelBanner(currentLevel.getId(),pauseDuration,marioDarkBlue,marioGold);
                     startingTime+=levelFinishPauseTime;
                     System.out.println(startingTime);
@@ -243,7 +254,7 @@ public class Game {
         StdDraw.filledRectangle(width/2,90,width/2,90);
         StdDraw.setPenColor(marioGold);
         StdDraw.setFont(new Font("SansSerif", Font.BOLD, 20));
-        StdDraw.text(width/2,90,levels.get(0).getClue());
+        StdDraw.text(width/2,90,levels.get(currentLevel-1).getClue());
 
         StdDraw.setPenColor(StdDraw.WHITE);
         StdDraw.text(125,125,"Move: [A] [D] [W]");
