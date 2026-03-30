@@ -7,12 +7,12 @@ import java.security.Key;
 import java.util.ArrayList;
 
 public class Game {
-    private ArrayList<Level> levels ;
-    private Map map;
-    private int width;
-    private int height;
-    private int cameraModeW;
-    private int cameraModeH;
+    private ArrayList<Level> levels ; // levels' data held
+    private Map map; // map data
+    private int width; // width of the canvas
+    private int height; // height of the canvas
+    private int cameraModeW; // player camera width
+    private int cameraModeH; // player camera height
 
     Game(ArrayList<Level> levels, Map map,int width,int height,int cameraModeW,int cameraModeH){
         this.levels=levels;
@@ -23,19 +23,24 @@ public class Game {
         this.cameraModeH=cameraModeH;
     }
 
+    // game initialization function, drawings calculations take place here actually
     public void run(Color skyColor, Color mainMenuColor0, Color mainMenuColor1, Color mainMenuColor2, Color marioDarkBlue, Color marioRed, Color marioGold, Color marioLightBlue){
 
-        Mario mario = new Mario(width/2,140); //test mario
+        Mario mario = new Mario(width/2,140); // initializes player
 
-        int frameCount = 0;
+        int frameCount = 0; // counts frames
         int gameState = 0; // 0=>main menu 1=> game 2=> endgame
-        Level currentLevel = levels.get(0);
-        int pauseDuration = 30;
-        int currentFPS;
-        int fpsKeyDelay=0; // delay is to prevent unwanted fps increase or decrease when adjustment
-        long startingTime=0;
+        Level currentLevel = levels.get(0); // holds the current level object (level1,2,3,4)
+        int pauseDuration = 30; // default pause duration is 30
+        int currentFPS; // 1000/pauseDuration
+
+        // hold the value whether the left or right arrow was pressed in previous frame to prevent unwanted clicks
+        boolean wasLeftArrowPressed=false;
+        boolean wasRightArrowPressed=false;
+
+        long startingTime=0; // holds the starting time of the game
         int coinsCollected=0;
-        boolean isLevelFinished=false;
+        boolean isLevelFinished=false; // whether the level is finished
 
         // camera mode check
         boolean isFollowingCamera=false;
@@ -46,65 +51,79 @@ public class Game {
 
         // end game menu option check
         boolean isRestart=false;
+
+        // hold the value whether the up or down arrow was pressed in previous frame to prevent unwanted clicks
         boolean wasUpArrowPressed=false;
         boolean wasDownArrowPressed=false;
-        String victoryTime="00:00:00"; // time displayed on endgame menu
+
+        String victoryTime="00:00:00"; // holds the time displayed on endgame menu
 
         while (true){
 
-            currentFPS=1000/pauseDuration;
+            currentFPS=1000/pauseDuration; // current fps value (displayed in main menu)
 
             // main menu part
             if (gameState==0){
 
+                // checks whether the player is on the ground in main menu
                 boolean isGroundedMain = map.isOnGroundMainMenu(mario.x, mario.y, mario.size/2.0, mario.speedY,width,height);
 
                 // processes the player's keyclicks
                 animationState = mario.handleInputMainMenu(frameCount,isGroundedMain,map);
 
-                // apply gravity to player
+                // applies gravity to player
                 applyGravityMainMenu(mario);
 
-                // fps adjustment
-                if (StdDraw.isKeyPressed(KeyEvent.VK_LEFT) && fpsKeyDelay==0){
+                // fps adjustment (used was pressed logic to prevent missclicks)
+                if (StdDraw.isKeyPressed(KeyEvent.VK_LEFT) && !wasLeftArrowPressed){
                     pauseDuration+=5;
-                    fpsKeyDelay=10;
-                } else if (StdDraw.isKeyPressed(KeyEvent.VK_RIGHT) && fpsKeyDelay==0){
+                } else if (StdDraw.isKeyPressed(KeyEvent.VK_RIGHT) && !wasRightArrowPressed){
                     if (pauseDuration>5){ //prevents division by 0 error
                         pauseDuration-=5;
                     } else {
-                        pauseDuration=1;
+                        pauseDuration=1; // fps can be 1000 maximum
                     }
-                    fpsKeyDelay=10;
-                }
-                if (fpsKeyDelay>0){
-                    fpsKeyDelay--;
                 }
 
+                // starts the game
                 if (StdDraw.isKeyPressed(KeyEvent.VK_SPACE)){
                     gameState=1;
-                    startingTime=System.currentTimeMillis();
-                    mario.respawn();
+                    startingTime=System.currentTimeMillis(); // assigns the starting time
+                    mario.respawn(); // to start the player in spawn position
                 }
 
-                // drawing part
-                StdDraw.clear(skyColor);
+                // drawing part for main menu
+                StdDraw.clear(skyColor); // draws the background
 
-                startScreen(mario,currentFPS,mainMenuColor0,mainMenuColor1,mainMenuColor2);
+                startScreen(mario,currentFPS,mainMenuColor0,mainMenuColor1,mainMenuColor2); // draws the start screen elements (menu, ground)
 
                 mario.draw(animationState); // draws the player on the canvas
 
-            } else if (gameState==1){
+                // checks whether the left arrow is being pressed
+                if (StdDraw.isKeyPressed(KeyEvent.VK_LEFT)){
+                    wasLeftArrowPressed=true;
+                } else {
+                    wasLeftArrowPressed=false;
+                }
+
+                // checks whether the right arrow is being pressed
+                if (StdDraw.isKeyPressed(KeyEvent.VK_RIGHT)){
+                    wasRightArrowPressed=true;
+                } else {
+                    wasRightArrowPressed=false;
+                }
+
+            } else if (gameState==1){ // gameplay part
 
                 // game reset logic
                 if (StdDraw.isKeyPressed(KeyEvent.VK_R)){
-                    levels=Main.initializeLevels();
-                    currentLevel=levels.get(0);
+                    levels=Main.initializeLevels(); // initializes the level from scratch like in the first opening
+                    currentLevel=levels.get(0); // resets the current level to level1
                     mario.respawn();
-                    mario.setDeathCount(0);
+                    mario.setDeathCount(0); // resets the death count
                     isLevelFinished=false;
-                    coinsCollected=0;
-                    startingTime=System.currentTimeMillis();
+                    coinsCollected=0; // resets the collected coin count
+                    startingTime=System.currentTimeMillis(); // resets the starting time
                 }
 
                 // camera mode toggle logic
@@ -120,7 +139,7 @@ public class Game {
                     int minY = mario.y-cameraModeH/2;
                     int maxY= mario.y+cameraModeH/2;
 
-                    // to prevent showing outside of the map, original map borders need to be considered
+                    // to prevent showing outside the map, original map borders need to be considered
                     if (minX<0){
                         minX=0;
                         maxX=width/2;
@@ -139,19 +158,17 @@ public class Game {
                     StdDraw.setXscale(minX,maxX);
                     StdDraw.setYscale(minY,maxY);
                 } else {
+                    // default fullscreen scale
                     StdDraw.setXscale(0, width);
                     StdDraw.setYscale(0, height);
                 }
 
-                // prevents back and forth teleporting
-                if (!map.checkPortalCollision(mario.x, mario.y,mario.size/2.0,0,0)){ // this is supposed to check whether the hitbox of the player is away from the portal or not
-                    mario.isTeleporting=false;
-                }
+
                 // it checks whether it is grounded so player can jump
-                boolean isGrounded = map.isOnGround(mario.x,mario.y, mario.size/2.0, mario.speedY,width,height, mario.isTeleporting);
+                boolean isGrounded = map.isOnGround(mario.x,mario.y, mario.size/2.0, mario.speedY,width,height, mario.teleportMode);
 
                 // processes the player's keyclicks and returns an integer to be used to select which animation will be used on player drawing
-                if (!mario.isDead()){
+                if (!mario.isDead() && mario.teleportMode==0){ // player must be alive and not teleporting to accept movement inputs
                     animationState = mario.handleInput(frameCount,isGrounded,map);
                 }
 
@@ -159,42 +176,81 @@ public class Game {
                 boolean isSPressed = StdDraw.isKeyPressed(KeyEvent.VK_S);
                 map.handleTeleport(mario, isSPressed);
 
-                // check coin collision with player and collect coins
+                // check coin collision (only on level 3 and 4) with player and collect coins and increment the coinsCollected by 1
                 if (currentLevel.getId()==3 || currentLevel.getId()==4){
                     coinsCollected+=map.collectCoin(mario,currentLevel);
                 }
 
+                // level finish logics
                 if (map.isOnLowerPipe(mario) && currentLevel.getId()==1){
                     isLevelFinished=true;
                 } else if (map.isOnLowerPipe(mario) && currentLevel.getId()==2) {
                     isLevelFinished=true;
                 } else if (map.isOnLowerPipe(mario) && currentLevel.getId()==3 && coinsCollected==3) {
-                    coinsCollected=0;
+                    coinsCollected=0; // must be resetted for the new level to count from the start
                     isLevelFinished=true;
                 } else if (map.isOnLowerPipe(mario) && currentLevel.getId()==4 && coinsCollected==3) {
-                    victoryTime = getTime(startingTime);
+                    victoryTime = getTime(startingTime); // gets the time elapsed as string to display in victory screen
                     coinsCollected=0;
                     isLevelFinished=true;
                 }
 
+                // enemy calculations for level 2,3,4
                 if (currentLevel.getId()==2 || currentLevel.getId()==3 || currentLevel.getId()==4){
-                    ArrayList<Enemy> enemies = levels.get(currentLevel.getId()-1).getEnemies();
+                    ArrayList<Enemy> enemies = levels.get(currentLevel.getId()-1).getEnemies(); // gets the enemies arraylist for current level
 
+                    // moves each enemy and checks the collision with player if player is alive
                     for (Enemy enemy : enemies){
                         enemy.move();
 
                         if (!mario.isDead()){
                             if (mario.checkEnemyCollision(enemy)){
-                                mario.die();
+                                mario.die(); // if player collides with enemy, make player dead
                             }
                         }
                     }
                 }
 
-                // apply gravity to player
-                applyGravity(mario);
+                // applies gravity to player
+                if (mario.teleportMode==0){
+                    applyGravity(mario); // only applies gravity if player is not teleporting
+                } else {
+                    int[][] portals = map.getPortals();
+                    int[][] upperPortal = {portals[0],portals[1]};
+                    int[][] lowerPortal = {portals[2],portals[3]};
 
-                if (!isLevelFinished){
+                    if (mario.teleportMode==1){ // teleporting from lower portal to upper portal
+
+                        mario.y-=3; // make player fall with constant speed
+                        mario.animationState=4; // hold crouch animation while teleporting
+
+                        // if player's topside is below than the lower portal's entrance
+                        if (mario.y+mario.size/2<lowerPortal[1][1]+lowerPortal[1][3]){
+                            // teleport player to the upper portal
+                            mario.x=upperPortal[0][0];
+                            mario.y=upperPortal[0][1];
+                            mario.speedY=0; // make player's speed 0 to make player fall freely with gravity
+                            mario.teleportMode=0; // exit from the teleport mode
+                        }
+
+                    } else if (mario.teleportMode==2){ // teleporting from upper portal to lower portal
+                        mario.y+=3; // make player rise with constant speed
+                        mario.animationState=3; // hold jump animation while teleporting
+
+                        // if player's bottom side is above than the upper portal's entrance
+                        if (mario.y-mario.size/2>upperPortal[1][1]-upperPortal[1][3]){
+                            // teleport player to the lower portal
+                            mario.x=lowerPortal[0][0];
+                            mario.y=lowerPortal[0][1];
+
+                            mario.speedY=28.0; // make player jump from the lower portal
+                            mario.teleportMode=0; // exit from the teleport mode
+                        }
+                    }
+                }
+
+
+                if (!isLevelFinished){ // drawings when level is not finished
                     // drawing part
                     StdDraw.clear(skyColor);
 
@@ -208,7 +264,7 @@ public class Game {
 
 
                     if (currentLevel.getId()==2 || currentLevel.getId()==3 || currentLevel.getId()==4) {
-                        // draws enemies in level 2 and 3
+                        // draws enemies in level 2,3,4
                         ArrayList<Enemy> enemies = levels.get(currentLevel.getId()-1).getEnemies();
 
                         for (Enemy enemy:enemies){
@@ -220,16 +276,17 @@ public class Game {
                             map.drawCoin(currentLevel);
                         }
                     }
+
                     // draws hud
                     hud(getTime(startingTime),currentLevel.getId(),mario.getDeathCount(),marioDarkBlue,marioGold);
-                } else if (currentLevel.getId()==4){
-                    gameState=2;
-                } else{
-                    long levelFinishPauseTime=levelBanner(currentLevel.getId(),pauseDuration,marioDarkBlue,marioGold);
-                    startingTime+=levelFinishPauseTime;
-                    if (StdDraw.isKeyPressed(KeyEvent.VK_SPACE)){
-                        mario.respawn();
-                        currentLevel=levels.get(currentLevel.getId());
+                } else if (currentLevel.getId()==4){ // when level 4 is finished
+                    gameState=2; // change the state to endgame
+                } else { // when level 1,2,3 is finished
+                    long levelFinishPauseTime=levelBanner(currentLevel.getId(),pauseDuration,marioDarkBlue,marioGold); // holds the time passed when level finished in level finish banner
+                    startingTime+=levelFinishPauseTime; // adds this time to starting time to make sure the time in level end banner passed not counted when starting the next level
+                    if (StdDraw.isKeyPressed(KeyEvent.VK_SPACE)){ // go to the next level when pressed space
+                        mario.respawn(); // start the
+                        currentLevel=levels.get(currentLevel.getId()); // increases the current level as level id = level index in the list + 1
                         isLevelFinished=false;
                     }
                 }
@@ -240,18 +297,19 @@ public class Game {
                 } else {
                     wasCPressed=false;
                 }
-            } else if (gameState==2){
+            } else if (gameState==2){ // endgame menu
 
+                // switch between exit and restart options
                 if (StdDraw.isKeyPressed(KeyEvent.VK_UP) && !wasUpArrowPressed){
                     isRestart=!isRestart;
                 }
-
                 if (StdDraw.isKeyPressed(KeyEvent.VK_DOWN) && !wasDownArrowPressed){
                     isRestart=!isRestart;
                 }
 
+
                 if (StdDraw.isKeyPressed(KeyEvent.VK_SPACE)){
-                    if (isRestart){
+                    if (isRestart){ // if restart selected (same logic with restart button)
                         levels=Main.initializeLevels();
                         currentLevel=levels.get(0);
                         mario.respawn();
@@ -260,11 +318,12 @@ public class Game {
                         coinsCollected=0;
                         startingTime=System.currentTimeMillis();
                         gameState=1;
+                    } else { // exits from the game when exit selected
+                        System.exit(0);
                     }
                 }
 
-
-
+                // endgame screen drawing part
                 StdDraw.clear(marioDarkBlue);
                 StdDraw.setPenColor(marioGold);
                 StdDraw.setFont(new Font("SansSerif", Font.BOLD, 45));
@@ -273,6 +332,7 @@ public class Game {
                 StdDraw.setPenColor(marioGold);
                 StdDraw.setFont(new Font("SansSerif", Font.BOLD, 28));
 
+                // switch the drawings according to the selections with up and down arrows
                 if (!isRestart){
                     StdDraw.text(width/2,height/2,"> Exit <");
 
@@ -289,8 +349,8 @@ public class Game {
 
                 StdDraw.setPenColor(StdDraw.WHITE);
                 StdDraw.setFont(new Font("SansSerif", Font.BOLD, 20));
-                StdDraw.text(width/2,185,"Time: "+victoryTime);
-                StdDraw.text(width/2,160,"Deaths: "+mario.getDeathCount());
+                StdDraw.text(width/2,185,"Time: "+victoryTime); // displays time elapsed in levels
+                StdDraw.text(width/2,160,"Deaths: "+mario.getDeathCount()); // displays death count
 
 
                 // to check whether arrow keys held down to prevent unwanted option changes
@@ -299,7 +359,6 @@ public class Game {
                 } else {
                     wasUpArrowPressed=false;
                 }
-
                 if (StdDraw.isKeyPressed(KeyEvent.VK_DOWN)){
                     wasDownArrowPressed=true;
                 } else {
@@ -317,22 +376,20 @@ public class Game {
 
     private void applyGravity(Mario mario){ //applies gravity constantly in every frame because it is physics
 
-
-
         mario.speedY -= mario.gravity; // apply gravity to player's speed
 
         if (mario.isDead()){  // skip collision checks just apply gravity to make player fall off from the screen
             mario.y+=mario.speedY;
         } else {
             // checking floor collision
-            if(map.isOnGround(mario.x,mario.y, mario.size/2.0,mario.speedY,width,height, mario.isTeleporting)){
+            if(map.isOnGround(mario.x,mario.y, mario.size/2.0,mario.speedY,width,height, mario.teleportMode)){
                 // because of how we check on isOnGround to prevent oscillation bug, player may still be hovering on the floor even though isOnGround returns true
-                while (!map.isOnGround(mario.x, mario.y, mario.size/2.0, 0, width, height, mario.isTeleporting)) { // to prevent hovering, we need to decrease player's y position one by one independent of the speed to make sure player is on the block
+                while (!map.isOnGround(mario.x, mario.y, mario.size/2.0, 0, width, height, mario.teleportMode)) { // to prevent hovering, we need to decrease player's y position one by one independent of the speed to make sure player is on the block
                     mario.y -= 1;
                 }
                 mario.speedY=0;
-            } else if (map.isOnCeiling(mario.x,mario.y, mario.size/2.0,mario.speedY,width,height, mario.isTeleporting)){
-                while (!map.isOnCeiling(mario.x, mario.y, mario.size/2.0, 0, width, height, mario.isTeleporting)) {
+            } else if (map.isOnCeiling(mario.x,mario.y, mario.size/2.0,mario.speedY,width,height, mario.teleportMode)){
+                while (!map.isOnCeiling(mario.x, mario.y, mario.size/2.0, 0, width, height, mario.teleportMode)) {
                     mario.y += 1;
                 }
                 mario.speedY=0;
@@ -343,6 +400,7 @@ public class Game {
 
     }
 
+    // similar logic but its not checking the obstacles in levels
     private void applyGravityMainMenu(Mario mario){ //applies gravity constantly in every frame because it is physics
 
         mario.speedY -= mario.gravity; // apply gravity to player's speed
@@ -355,11 +413,13 @@ public class Game {
             mario.speedY=0;
         }
         // there is no way player can reach to ceiling in main menu
+
         mario.y+=mario.speedY;
     }
 
     // draws start screen
     private void startScreen(Mario mario, int currentFPS,Color mainMenuColor0, Color mainMenuColor1, Color mainMenuColor2){
+        // draws the bottom blocks
         for (int i=0;i<3;i++){
             for (int k=0;k<20;k++){
                 StdDraw.picture(20+k*40,20+40*i,"./assets/block.png",40,40);
@@ -402,23 +462,24 @@ public class Game {
         StdDraw.filledRectangle(width/2,90,width/2,90);
         StdDraw.setPenColor(marioGold);
         StdDraw.setFont(new Font("SansSerif", Font.BOLD, 20));
-        StdDraw.text(width/2,90,levels.get(currentLevel-1).getClue());
+        StdDraw.text(width/2+25,90,levels.get(currentLevel-1).getClue()); // clue text displayed in middle
 
         StdDraw.setPenColor(StdDraw.WHITE);
         StdDraw.text(125,125,"Move: [A] [D] [W]");
         StdDraw.text(125,90,"Restart: [R]");
         StdDraw.text(125,50,"Camera: [C]");
 
-        StdDraw.text(700,125,"Level "+currentLevel);
-        StdDraw.text(700,90,timeElapsed);
+        StdDraw.text(720,125,"Level "+currentLevel); // level indicator
+        StdDraw.text(720,90,timeElapsed); // draws passed time
         StdDraw.setPenColor(marioGold);
-        StdDraw.text(700,50,"Deaths: "+deaths);
+        StdDraw.text(720,50,"Deaths: "+deaths); // death counter
     }
 
     // gets time elapsed and returns the displayed string
     private String getTime(long startingTime){
-        long elapsedMillis = System.currentTimeMillis()-startingTime;
+        long elapsedMillis = System.currentTimeMillis()-startingTime; // elapsed time in each frame between starting time
 
+        // conversions
         long totalSeconds = elapsedMillis / 1000;
         long displayMillis = (elapsedMillis % 1000) / 10; // to display 2 digit ms, need to divide by 10 to eliminate the last digit
         long minutes = totalSeconds / 60;
@@ -427,6 +488,7 @@ public class Game {
         return String.format("%02d:%02d:%02d", minutes, seconds,displayMillis); // to achieve 00:00:00 format
     }
 
+    // level ending banner
     private long levelBanner(int id,int pauseDuration,Color marioDarkBlue,Color marioGold){
         long levelFinishPauseStart = System.currentTimeMillis(); // the exact time when level finishes
 

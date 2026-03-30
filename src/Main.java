@@ -10,6 +10,7 @@ import java.util.Scanner;
 
 public class Main {
 
+    // read file function
     private static void readFile(int[][] positions, String file){
         try{
             FileInputStream fis = new FileInputStream(file);
@@ -36,28 +37,32 @@ public class Main {
             e.printStackTrace();
         }
     }
-    //String[] clues, ArrayList<Enemy> enemies, ArrayList<Enemy> enemiesLevel4, int[][] coins
+
+    // initializes levels from defaults
     public static ArrayList<Level> initializeLevels() {
         Enemy enemy0 = new Enemy(340, 580, 40, 0, 260, 420); //new Enemy(x, y, size, direction, x1, x2)
         Enemy enemy1 = new Enemy(440, 300, 40, 1, 380, 500); //new Enemy(x, y, size, direction, x1, x2)
-        Enemy enemy2 = new Enemy(520, 620, 40, 1, 460, 580,600); //new Enemy(x, y, size, direction, x1, x2)
+        Enemy enemy2 = new Enemy(520, 620, 40, 1, 460, 580,600); //new Enemy(x, y, size, direction, x1, x2, floorY) (enemy type 2)
+        Enemy enemy3 = new Enemy(440, 300, 40, 0, 380, 500,280); //new Enemy(x, y, size, direction, x1, x2, floorY) (enemy type 2)
 
         String clue0 = "Go to the exit pipe!";
         String clue1 = "Do not mess with mushrooms!";
         String clue2 = "Do not forget to collect all the coins!";
-        String clue3 = "Do not forget to collect all the coins and be careful about enemy";
+        String clue3 = "Be careful about new enemy!";
 
         int[][] coinsLevel3 = new int[3][4];
         int[][] coinsLevel4 = new int[3][4];
-        readFile(coinsLevel3,"./data/coins.txt");
-        readFile(coinsLevel4,"./data/coins.txt");
+        readFile(coinsLevel3,"./data/coins.txt"); // sets coin coordinates for level 3 to its coins array
+        readFile(coinsLevel4,"./data/coins.txt");  // sets coin coordinates for level 4 to its coins array
 
         ArrayList<Enemy> enemies = new ArrayList<>(); // enemies in level 2 and 3
         enemies.add(enemy0);
         enemies.add(enemy1);
 
-        ArrayList<Enemy> enemiesLevel4 = new ArrayList<>(enemies); // enemies in level 4
+        ArrayList<Enemy> enemiesLevel4 = new ArrayList<>(); // enemies in level 4
+        enemiesLevel4.add(enemy0);
         enemiesLevel4.add(enemy2);
+        enemiesLevel4.add(enemy3);
 
         ArrayList<Level> levels = new ArrayList<>(); //test levels
 
@@ -99,11 +104,10 @@ public class Main {
         readFile(pipes,"./data/pipes.txt"); //check location it seems makes 10 to 30 in 2. line
         readFile(portals,"./data/portals.txt");
 
-
         Map map = new Map(obstacles,pipes,portals); // map object
 
-        Game game = new Game(initializeLevels(),map,width,height,cameraModeW,cameraModeH);
+        Game game = new Game(initializeLevels(),map,width,height,cameraModeW,cameraModeH); // game object
 
-        game.run(skyColor,mainMenuColor0,mainMenuColor1,mainMenuColor2,marioDarkBlue,marioRed,marioGold,marioLightBlue);
+        game.run(skyColor,mainMenuColor0,mainMenuColor1,mainMenuColor2,marioDarkBlue,marioRed,marioGold,marioLightBlue); // starts the game
     }
 }

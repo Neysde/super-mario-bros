@@ -14,6 +14,7 @@ public class Map {
         this.portals=portals;
     }
 
+    // map elements draw function
     public void draw(){
         // draws obstacles with their proper scaledWidth and scaledHeight
         for (int[] obstacle : obstacles){
@@ -33,6 +34,7 @@ public class Map {
         }
     }
 
+    // checks collision with player and given map element array
     private boolean checkCollision(double nextX, double nextY, double playerHalfSize, int[][] obstacles){
         for (int[] obstacle : obstacles){
             if (Math.abs(nextX-obstacle[0])<(playerHalfSize+obstacle[2]) && Math.abs(nextY-obstacle[1])<(playerHalfSize+obstacle[3])){ // checks for x and y axis collisions (obstacle[0] is the x coordinate of obstacle and obstacle[2] is the half width)
@@ -42,23 +44,26 @@ public class Map {
         return false;
     }
 
-    public boolean isOnGround(int x, int y, double playerHalfSize, double speedY, int worldW, int worldH,boolean isGhost){
+    // checks whether the player is on ground
+    public boolean isOnGround(int x, int y, double playerHalfSize, double speedY, int worldW, int worldH,int teleportMode){
         double nextY=y+speedY-1.0; // it basically to check is there a ground below the player
+        int[][] lowerPortal={portals[2],portals[3]};
 
         if (x-playerHalfSize<0 || x+playerHalfSize>worldW){ // if player is out of the canvas width, cannot be on ground
             return false;
         }
-        if (speedY>0){ //it must be jumping
+        if (speedY>0){ // it must be jumping
             return false;
         }
 
-        if (!isGhost && checkCollision(x, nextY, playerHalfSize, portals)){
+        if (teleportMode==0 && checkCollision(x, nextY, playerHalfSize, lowerPortal)){ // lower portal collision check
             return true;
         }
 
-        return checkCollision(x,nextY,playerHalfSize,obstacles);
+        return checkCollision(x,nextY,playerHalfSize,obstacles); // blocks collision check
     }
 
+    // main menu ground check similar logic but its not checking the obstacles and portals
     public boolean isOnGroundMainMenu(int x, int y, double playerHalfSize, double speedY, int worldH, int worldW){
 
         double nextY=y+speedY-1.0; // it basically checks is there a ground below the player
@@ -66,10 +71,9 @@ public class Map {
         if (nextY-playerHalfSize<120){
             return true;
         }
-
         return false;
-
     }
+
 
     public boolean isValidXMoveMainMenu(int x,int y, double playerHalfSize, double speedX, int worldW){
         double nextX = x+speedX;
@@ -81,7 +85,7 @@ public class Map {
         return true;
     }
 
-    public boolean isOnCeiling(int x, int y, double playerHalfSize, double speedY, int worldW, int worldH, boolean isGhost){
+    public boolean isOnCeiling(int x, int y, double playerHalfSize, double speedY, int worldW, int worldH, int teleportMode){
         double nextY=y+speedY+1.0; // it basically to check is there a ceiling above the player
         if (speedY < 0){ // it cannot be on ceiling if player's speed is less than 0
             return false;
@@ -95,29 +99,20 @@ public class Map {
             return true;
         }
 
-        if (!isGhost && checkCollision(x, nextY, playerHalfSize, portals)){
-            return true;
-        }
-
         return checkCollision(x,nextY,playerHalfSize,obstacles);
     }
 
-    public boolean isValidXMove(int nextX,int y, double playerHalfSize, int worldW, boolean isGhost){
-        if (nextX-playerHalfSize<0 || nextX+playerHalfSize>worldW){
+    // x axis collision checking
+    public boolean isValidXMove(int nextX,int y, double playerHalfSize, int worldW, int teleportMode){
+        if (nextX-playerHalfSize<0 || nextX+playerHalfSize>worldW){ // canvas border check
             return false;
         }
 
-        if (!isGhost && checkCollision(nextX, y, playerHalfSize, portals)){
+        if (teleportMode==0 && checkCollision(nextX, y, playerHalfSize, portals)){ // portal collision check
             return false;
         }
 
-        return !checkCollision(nextX,y,playerHalfSize,obstacles);
-    }
-
-    public boolean checkPortalCollision(int x, int y, double playerHalfSize, double speedX, double speedY){
-        int nextX = x + (int) speedX;
-        int nextY = y + (int) speedY;
-        return checkCollision(nextX,nextY,playerHalfSize,portals);
+        return !checkCollision(nextX,y,playerHalfSize,obstacles); // reverses the obstacle collision check's value because this represents the valid move
     }
 
     public void handleTeleport(Mario mario, boolean isSPressed){
@@ -133,22 +128,17 @@ public class Map {
         int[][] upperPortal = {portals[0],portals[1]};
         int[][] lowerPortal = {portals[2],portals[3]};
 
-        if (mario.speedY > 0 && !mario.isTeleporting){
-            //Math.abs(nextX-upperPortal[1][0])<(playerHalfSize+upperPortal[1][2])
+        if (mario.speedY > 0 && mario.teleportMode==0){
             if (marioNextTop>=upperPortal[1][1]-upperPortal[1][3] && nextX>=upperPortal[1][0]-upperPortal[1][2] && nextX<=upperPortal[1][0]+upperPortal[1][2]){ //instead of left and right sides of the player, use only center of the player to make portal entries easier without trying to pixel perfecting.
-                mario.x=lowerPortal[0][0];
-                mario.y=lowerPortal[0][1];
-                mario.speedY = 23.0;
-                mario.isTeleporting=true;
+                mario.x=upperPortal[0][0];
+                mario.teleportMode=2;
             }
         }
 
-        if (mario.speedY <= 0 && !mario.isTeleporting){
+        if (mario.speedY <= 0 && mario.teleportMode==0){
             if (isSPressed && marioNextBottom<=lowerPortal[1][1]+lowerPortal[1][3] && nextX>=lowerPortal[1][0]-lowerPortal[1][2] && nextX<=lowerPortal[1][0]+lowerPortal[1][2]){
-                mario.x=upperPortal[0][0];
-                mario.y=upperPortal[0][1];
-                mario.speedY=0;
-                mario.isTeleporting=true;
+                mario.x=lowerPortal[0][0];
+                mario.teleportMode=1;
             }
         }
 
@@ -181,4 +171,7 @@ public class Map {
         }
     }
 
+    public int[][] getPortals() {
+        return portals;
+    }
 }

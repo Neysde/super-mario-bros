@@ -13,14 +13,17 @@ public class Mario {
     int x;
     int y;
     double speedY;
-    double speedX=9.0;
+    double speedX=10.0;
     double gravity=2.0;
 
     // direction
     boolean isRight;
 
     boolean isSPressed=false;
-    boolean isTeleporting=false;
+    int teleportMode = 0; //0=>normal gameplay, 1=>entering at the lower portal, 2=>entering at the upper portal
+
+    // animation state of the player
+    int animationState;
 
     private int deathCount;
     private boolean isDead;
@@ -84,7 +87,7 @@ public class Mario {
 
     public int handleInput(int frame, boolean onGround, Map map){ //returning int to communicate with draw()
         boolean currentWState=false;
-        int animationState=0; //default
+        animationState=0; //default
         if (StdDraw.isKeyPressed(KeyEvent.VK_W)){
             currentWState=true;
         }
@@ -98,7 +101,7 @@ public class Mario {
             int walkingState=(frame/8)%2; //to create metronome-like state. in every 8 frames this value changes to 0 or 1 alternatively so we can draw 2 different walking picture alternatively
             
             int nextX=x + (int) speedX;
-            if (map.isValidXMove(nextX,y,size/2,800,isTeleporting)){
+            if (map.isValidXMove(nextX,y,size/2,800,teleportMode)){
                 x=nextX;
             }
 
@@ -114,7 +117,7 @@ public class Mario {
         if (StdDraw.isKeyPressed(KeyEvent.VK_A)){
             int walkingState=(frame/8)%2;
             int nextX = x - (int) speedX;
-            if (map.isValidXMove(nextX,y,size/2,800,isTeleporting)){
+            if (map.isValidXMove(nextX,y,size/2,800,teleportMode)){
                 x=nextX;
             }
 
@@ -142,7 +145,7 @@ public class Mario {
 
     public int handleInputMainMenu(int frame, boolean onGround, Map map){ //returning int to communicate with draw()
         boolean currentWState=false;
-        int animationState=0; //default
+        animationState=0;
         if (StdDraw.isKeyPressed(KeyEvent.VK_W)){
             currentWState=true;
         }
