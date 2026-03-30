@@ -11,12 +11,16 @@ public class Game {
     private Map map;
     private int width;
     private int height;
+    private int cameraModeW;
+    private int cameraModeH;
 
-    Game(ArrayList<Level> levels, Map map,int width,int height){
+    Game(ArrayList<Level> levels, Map map,int width,int height,int cameraModeW,int cameraModeH){
         this.levels=levels;
         this.map=map;
         this.width=width;
         this.height=height;
+        this.cameraModeW=cameraModeW;
+        this.cameraModeH=cameraModeH;
     }
 
     public void run(Color skyColor, Color mainMenuColor0, Color mainMenuColor1, Color mainMenuColor2, Color marioDarkBlue, Color marioRed, Color marioGold, Color marioLightBlue){
@@ -33,7 +37,18 @@ public class Game {
         int coinsCollected=0;
         boolean isLevelFinished=false;
 
+        // camera mode check
+        boolean isFollowingCamera=false;
+        boolean wasCPressed=false;
 
+        // player animation state
+        int animationState=0;
+
+        // end game menu option check
+        boolean isRestart=false;
+        boolean wasUpArrowPressed=false;
+        boolean wasDownArrowPressed=false;
+        String victoryTime="00:00:00"; // time displayed on endgame menu
 
         while (true){
 
@@ -45,7 +60,7 @@ public class Game {
                 boolean isGroundedMain = map.isOnGroundMainMenu(mario.x, mario.y, mario.size/2.0, mario.speedY,width,height);
 
                 // processes the player's keyclicks
-                int directionMain = mario.handleInputMainMenu(frameCount,isGroundedMain,map);
+                animationState = mario.handleInputMainMenu(frameCount,isGroundedMain,map);
 
                 // apply gravity to player
                 applyGravityMainMenu(mario);
@@ -77,9 +92,57 @@ public class Game {
 
                 startScreen(mario,currentFPS,mainMenuColor0,mainMenuColor1,mainMenuColor2);
 
-                mario.draw(); // draws the player on the canvas
+                mario.draw(animationState); // draws the player on the canvas
 
             } else if (gameState==1){
+
+                // game reset logic
+                if (StdDraw.isKeyPressed(KeyEvent.VK_R)){
+                    levels=Main.initializeLevels();
+                    currentLevel=levels.get(0);
+                    mario.respawn();
+                    mario.setDeathCount(0);
+                    isLevelFinished=false;
+                    coinsCollected=0;
+                    startingTime=System.currentTimeMillis();
+                }
+
+                // camera mode toggle logic
+                if (StdDraw.isKeyPressed(KeyEvent.VK_C) && !wasCPressed){
+                    isFollowingCamera=!isFollowingCamera;
+                }
+
+                // camera mode scale login
+                if (isFollowingCamera){
+                    // scalings' min and max values
+                    int minX = mario.x-cameraModeW/2;
+                    int maxX = mario.x+cameraModeW/2;
+                    int minY = mario.y-cameraModeH/2;
+                    int maxY= mario.y+cameraModeH/2;
+
+                    // to prevent showing outside of the map, original map borders need to be considered
+                    if (minX<0){
+                        minX=0;
+                        maxX=width/2;
+                    } else if (maxX>width){
+                        minX=width/2;
+                        maxX=width;
+                    }
+                    if (minY < 0) {
+                        minY=0;
+                        maxY=height/2;
+                    } else if (maxY>height){
+                        maxY=height;
+                        minY=height/2;
+                    }
+                    // creates a scaled 400x400 window following player
+                    StdDraw.setXscale(minX,maxX);
+                    StdDraw.setYscale(minY,maxY);
+                } else {
+                    StdDraw.setXscale(0, width);
+                    StdDraw.setYscale(0, height);
+                }
+
                 // prevents back and forth teleporting
                 if (!map.checkPortalCollision(mario.x, mario.y,mario.size/2.0,0,0)){ // this is supposed to check whether the hitbox of the player is away from the portal or not
                     mario.isTeleporting=false;
@@ -87,17 +150,18 @@ public class Game {
                 // it checks whether it is grounded so player can jump
                 boolean isGrounded = map.isOnGround(mario.x,mario.y, mario.size/2.0, mario.speedY,width,height, mario.isTeleporting);
 
-                // processes the player's keyclicks
+                // processes the player's keyclicks and returns an integer to be used to select which animation will be used on player drawing
                 if (!mario.isDead()){
-                    int direction = mario.handleInput(frameCount,isGrounded,map);
+                    animationState = mario.handleInput(frameCount,isGrounded,map);
                 }
 
                 // Catch the teleportation jump before gravity has a chance to break that
                 boolean isSPressed = StdDraw.isKeyPressed(KeyEvent.VK_S);
                 map.handleTeleport(mario, isSPressed);
 
-                if (currentLevel.getId()==3){
-                    coinsCollected+=map.collectCoin(mario);
+                // check coin collision with player and collect coins
+                if (currentLevel.getId()==3 || currentLevel.getId()==4){
+                    coinsCollected+=map.collectCoin(mario,currentLevel);
                 }
 
                 if (map.isOnLowerPipe(mario) && currentLevel.getId()==1){
@@ -105,6 +169,11 @@ public class Game {
                 } else if (map.isOnLowerPipe(mario) && currentLevel.getId()==2) {
                     isLevelFinished=true;
                 } else if (map.isOnLowerPipe(mario) && currentLevel.getId()==3 && coinsCollected==3) {
+                    coinsCollected=0;
+                    isLevelFinished=true;
+                } else if (map.isOnLowerPipe(mario) && currentLevel.getId()==4 && coinsCollected==3) {
+                    victoryTime = getTime(startingTime);
+                    coinsCollected=0;
                     isLevelFinished=true;
                 }
 
@@ -131,9 +200,9 @@ public class Game {
 
                     if (mario.isDead()){ // !!! when player is dead they must fall in front of the obstacles
                         map.draw();
-                        mario.draw();
+                        mario.draw(animationState);
                     } else { // !!! but when player is alive they must be drawn behind the pipes and portals
-                        mario.draw();
+                        mario.draw(animationState);
                         map.draw();
                     }
 
@@ -146,29 +215,103 @@ public class Game {
                             enemy.draw();
                         }
 
-                        // draws coins in level 3
-                        if (currentLevel.getId()==3){
-                            map.drawCoin();
+                        // draws coins in level 3 and 4
+                        if (currentLevel.getId()==3 || currentLevel.getId()==4){
+                            map.drawCoin(currentLevel);
                         }
                     }
-
                     // draws hud
                     hud(getTime(startingTime),currentLevel.getId(),mario.getDeathCount(),marioDarkBlue,marioGold);
-                } else {
+                } else if (currentLevel.getId()==4){
+                    gameState=2;
+                } else{
                     long levelFinishPauseTime=levelBanner(currentLevel.getId(),pauseDuration,marioDarkBlue,marioGold);
                     startingTime+=levelFinishPauseTime;
-                    System.out.println(startingTime);
                     if (StdDraw.isKeyPressed(KeyEvent.VK_SPACE)){
                         mario.respawn();
                         currentLevel=levels.get(currentLevel.getId());
                         isLevelFinished=false;
                     }
                 }
+
+                // to check whether c held down to prevent unwanted changes in camera modes.
+                if (StdDraw.isKeyPressed(KeyEvent.VK_C)){
+                    wasCPressed=true;
+                } else {
+                    wasCPressed=false;
+                }
+            } else if (gameState==2){
+
+                if (StdDraw.isKeyPressed(KeyEvent.VK_UP) && !wasUpArrowPressed){
+                    isRestart=!isRestart;
+                }
+
+                if (StdDraw.isKeyPressed(KeyEvent.VK_DOWN) && !wasDownArrowPressed){
+                    isRestart=!isRestart;
+                }
+
+                if (StdDraw.isKeyPressed(KeyEvent.VK_SPACE)){
+                    if (isRestart){
+                        levels=Main.initializeLevels();
+                        currentLevel=levels.get(0);
+                        mario.respawn();
+                        mario.setDeathCount(0);
+                        isLevelFinished=false;
+                        coinsCollected=0;
+                        startingTime=System.currentTimeMillis();
+                        gameState=1;
+                    }
+                }
+
+
+
+                StdDraw.clear(marioDarkBlue);
+                StdDraw.setPenColor(marioGold);
+                StdDraw.setFont(new Font("SansSerif", Font.BOLD, 45));
+                StdDraw.text(width/2,650,"You Won!");
+
+                StdDraw.setPenColor(marioGold);
+                StdDraw.setFont(new Font("SansSerif", Font.BOLD, 28));
+
+                if (!isRestart){
+                    StdDraw.text(width/2,height/2,"> Exit <");
+
+                    StdDraw.setPenColor(marioLightBlue);
+                    StdDraw.text(width/2,height/2-50,"Restart");
+                } else {
+                    StdDraw.text(width/2,height/2-50,"> Restart <");
+
+                    StdDraw.setPenColor(marioLightBlue);
+                    StdDraw.text(width/2,height/2,"Exit");
+                }
+
+
+
+                StdDraw.setPenColor(StdDraw.WHITE);
+                StdDraw.setFont(new Font("SansSerif", Font.BOLD, 20));
+                StdDraw.text(width/2,185,"Time: "+victoryTime);
+                StdDraw.text(width/2,160,"Deaths: "+mario.getDeathCount());
+
+
+                // to check whether arrow keys held down to prevent unwanted option changes
+                if (StdDraw.isKeyPressed(KeyEvent.VK_UP)){
+                    wasUpArrowPressed=true;
+                } else {
+                    wasUpArrowPressed=false;
+                }
+
+                if (StdDraw.isKeyPressed(KeyEvent.VK_DOWN)){
+                    wasDownArrowPressed=true;
+                } else {
+                    wasDownArrowPressed=false;
+                }
+
             }
 
             StdDraw.show();
             StdDraw.pause(pauseDuration);
             frameCount++;
+
         }
     }
 
@@ -250,6 +393,11 @@ public class Game {
     }
 
     private void hud(String timeElapsed, int currentLevel, int deaths, Color marioDarkBlue, Color marioGold){
+
+        //always draw hud like in full screen view
+        StdDraw.setXscale(0, width);
+        StdDraw.setYscale(0, height);
+
         StdDraw.setPenColor(marioDarkBlue);
         StdDraw.filledRectangle(width/2,90,width/2,90);
         StdDraw.setPenColor(marioGold);
@@ -279,9 +427,12 @@ public class Game {
         return String.format("%02d:%02d:%02d", minutes, seconds,displayMillis); // to achieve 00:00:00 format
     }
 
-
     private long levelBanner(int id,int pauseDuration,Color marioDarkBlue,Color marioGold){
         long levelFinishPauseStart = System.currentTimeMillis(); // the exact time when level finishes
+
+        // level banner should be drawn like in fullscreen mode independent of the camera mode
+        StdDraw.setXscale(0, width);
+        StdDraw.setYscale(0, height);
 
         // separate while loop to draw level finish banner because of the time calculations, If we do not include that loop, time calculations would went off because of the pause in the main loop.
         while(true){
