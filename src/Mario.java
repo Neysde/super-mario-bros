@@ -70,13 +70,15 @@ public class Mario {
 
     }
 
+    // respawns player at the spawn point
     public void respawn(){
         x=spawnX;
         y=spawnY;
-        speedY=0;
+        speedY=0; // sets the speed to 0 to make sure player is falling through the pipe at spawn by gravity
         isDead=false;
     }
 
+    // death count getter setter
     public int getDeathCount() {
         return deathCount;
     }
@@ -85,38 +87,48 @@ public class Mario {
         this.deathCount = deathCount;
     }
 
+    // handles the key inputs in gameplay
     public int handleInput(int frame, boolean onGround, Map map){ //returning int to communicate with draw()
         boolean currentWState=false;
-        animationState=0; //default
+        animationState=0; // default standing frame
+        // checks whether the w is being pressed
         if (StdDraw.isKeyPressed(KeyEvent.VK_W)){
             currentWState=true;
         }
 
+        // if player is on the ground, pressed w but not holding w down (we check whether w is pressed in the previous frame)
         if (currentWState && onGround && !wasWPressed){
             jump();
-            animationState=3;
+            animationState=3; // jumping animation state
         }
 
+        // when player presses d
         if (StdDraw.isKeyPressed(KeyEvent.VK_D)){
             int walkingState=(frame/8)%2; //to create metronome-like state. in every 8 frames this value changes to 0 or 1 alternatively so we can draw 2 different walking picture alternatively
             
-            int nextX=x + (int) speedX;
+            int nextX = x + (int) speedX;
+
+            // if player can move in right direction
             if (map.isValidXMove(nextX,y,size/2,800,teleportMode)){
                 x=nextX;
             }
 
-            isRight=true;
+            isRight=true; // to use standRight or jumpRight stances
 
-            if (walkingState==0){
+            if (walkingState==0){ // if player is standing
                 animationState=1; // walkRight1
             } else {
                 animationState=2; // walkRight2
             }
 
         }
+
+        // when player presses a (similar logic with d)
         if (StdDraw.isKeyPressed(KeyEvent.VK_A)){
             int walkingState=(frame/8)%2;
+
             int nextX = x - (int) speedX;
+
             if (map.isValidXMove(nextX,y,size/2,800,teleportMode)){
                 x=nextX;
             }
@@ -130,19 +142,24 @@ public class Mario {
             }
             
         }
+        // when player presses s (for crouching)
         if (StdDraw.isKeyPressed(KeyEvent.VK_S)){
-            animationState=4; // crouch
+            animationState=4; // crouch stance
             isSPressed=true;
         } else {
             isSPressed=false;
         }
-        wasWPressed=currentWState;
+
+        wasWPressed=currentWState; // to prevent holding w down for jumping, it assigns whether the w is being pressed for this frame to use this value to check was w pressed in the preivous frame
+
         if (!onGround){
             animationState=3; // player must be jumping if player is not on the ground
         }
+
         return animationState;
     }
 
+    // main menu input handling (similar logic with handleInput but no obstacle collision check)
     public int handleInputMainMenu(int frame, boolean onGround, Map map){ //returning int to communicate with draw()
         boolean currentWState=false;
         animationState=0;
@@ -152,24 +169,48 @@ public class Mario {
 
         if (currentWState && onGround && !wasWPressed){
             jump();
-            animationState=2;
+            animationState=3;
         }
 
         if (StdDraw.isKeyPressed(KeyEvent.VK_D)){
-            int nextX=x + (int) speedX;
-            if (map.isValidXMoveMainMenu(nextX,y,size/2.0,speedX,800)){
+
+            int walkingState=(frame/8)%2;
+
+            int nextX= x + (int) speedX;
+            if (map.isValidXMoveMainMenu(nextX,y,size/2.0,800)){
                 x=nextX;
             }
-            animationState=1; //for turning right
+
+            isRight=true;
+
+            if (walkingState==0){
+                animationState=1; // walkRight1
+            } else {
+                animationState=2; // walkRight2
+            }
         }
+
         if (StdDraw.isKeyPressed(KeyEvent.VK_A)){
+
+            int walkingState=(frame/8)%2;
+
             int nextX = x - (int) speedX;
-            if (map.isValidXMoveMainMenu(nextX,y,size/2.0,speedX,800)){
+            if (map.isValidXMoveMainMenu(nextX,y,size/2.0,800)){
                 x=nextX;
             }
-            animationState=-1; //for turning left
+
+            isRight=false;
+
+            if (walkingState==0){
+                animationState=-1; // walkLeft1
+            } else {
+                animationState=-2; // walkLeft2
+            }
         }
         wasWPressed=currentWState;
+        if (!onGround){
+            animationState=3; // player must be jumping if player is not on the ground
+        }
         return animationState; //for standing still
     }
 
@@ -177,6 +218,7 @@ public class Mario {
         speedY=23.0; //sets speed y to a large value
     }
 
+    // checks whether player collides with the given enemy
     public boolean checkEnemyCollision(Enemy enemy){
         int playerLeft = x-size/2;
         int playerRight = x+size/2;
@@ -188,6 +230,8 @@ public class Mario {
         int enemyTop = enemy.getY()+enemy.getSize()/2;
         int enemyBottom = enemy.getY()-enemy.getSize()/2;
 
+        // greater or less logic used instead of greater or equal or less or equal to make the game more rewarding
+
         if (playerLeft<enemyRight && playerRight>enemyLeft && playerTop>enemyBottom && playerBottom<enemyTop){
             return true;
         }
@@ -195,6 +239,7 @@ public class Mario {
         return false;
     }
 
+    // make player die (gives speed boost for jumping effect in death animation)
     public void die(){
         jump();
         deathCount++;

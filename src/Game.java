@@ -66,7 +66,7 @@ public class Game {
             if (gameState==0){
 
                 // checks whether the player is on the ground in main menu
-                boolean isGroundedMain = map.isOnGroundMainMenu(mario.x, mario.y, mario.size/2.0, mario.speedY,width,height);
+                boolean isGroundedMain = map.isOnGroundMainMenu(mario.x, mario.y, mario.size/2.0, mario.speedY);
 
                 // processes the player's keyclicks
                 animationState = mario.handleInputMainMenu(frameCount,isGroundedMain,map);
@@ -165,7 +165,7 @@ public class Game {
 
 
                 // it checks whether it is grounded so player can jump
-                boolean isGrounded = map.isOnGround(mario.x,mario.y, mario.size/2.0, mario.speedY,width,height, mario.teleportMode);
+                boolean isGrounded = map.isOnGround(mario.x, mario.y, mario.size/2.0, mario.speedY, width, mario.teleportMode);
 
                 // processes the player's keyclicks and returns an integer to be used to select which animation will be used on player drawing
                 if (!mario.isDead() && mario.teleportMode==0){ // player must be alive and not teleporting to accept movement inputs
@@ -324,6 +324,11 @@ public class Game {
                 }
 
                 // endgame screen drawing part
+
+                // draw endgame screen considering fullscreen scale
+                StdDraw.setXscale(0,width);
+                StdDraw.setXscale(0,height);
+
                 StdDraw.clear(marioDarkBlue);
                 StdDraw.setPenColor(marioGold);
                 StdDraw.setFont(new Font("SansSerif", Font.BOLD, 45));
@@ -382,14 +387,14 @@ public class Game {
             mario.y+=mario.speedY;
         } else {
             // checking floor collision
-            if(map.isOnGround(mario.x,mario.y, mario.size/2.0,mario.speedY,width,height, mario.teleportMode)){
+            if(map.isOnGround(mario.x,mario.y, mario.size/2.0,mario.speedY,width, mario.teleportMode)){
                 // because of how we check on isOnGround to prevent oscillation bug, player may still be hovering on the floor even though isOnGround returns true
-                while (!map.isOnGround(mario.x, mario.y, mario.size/2.0, 0, width, height, mario.teleportMode)) { // to prevent hovering, we need to decrease player's y position one by one independent of the speed to make sure player is on the block
+                while (!map.isOnGround(mario.x, mario.y, mario.size/2.0, 0, width, mario.teleportMode)) { // to prevent hovering, we need to decrease player's y position one by one independent of the speed to make sure player is on the block
                     mario.y -= 1;
                 }
                 mario.speedY=0;
-            } else if (map.isOnCeiling(mario.x,mario.y, mario.size/2.0,mario.speedY,width,height, mario.teleportMode)){
-                while (!map.isOnCeiling(mario.x, mario.y, mario.size/2.0, 0, width, height, mario.teleportMode)) {
+            } else if (map.isOnCeiling(mario.x,mario.y, mario.size/2.0,mario.speedY,width, height)){
+                while (!map.isOnCeiling(mario.x, mario.y, mario.size/2.0, 0, width, mario.teleportMode)) {
                     mario.y += 1;
                 }
                 mario.speedY=0;
@@ -401,13 +406,13 @@ public class Game {
     }
 
     // similar logic but its not checking the obstacles in levels
-    private void applyGravityMainMenu(Mario mario){ //applies gravity constantly in every frame because it is physics
+    private void applyGravityMainMenu(Mario mario) { //applies gravity constantly in every frame because it is physics
 
         mario.speedY -= mario.gravity; // apply gravity to player's speed
         // checking floor collision
-        if(map.isOnGroundMainMenu(mario.x,mario.y, mario.size/2.0,mario.speedY,width,height)){
+        if(map.isOnGroundMainMenu(mario.x,mario.y, mario.size/2.0,mario.speedY)){
             // because of how we check on isOnGround to prevent oscillation bug, player may still be hovering on the floor even though isOnGround returns true
-            while (!map.isOnGroundMainMenu(mario.x, mario.y, mario.size/2.0, 0, width, height)) { // to prevent hovering, we need to decrease player's y position one by one independent of the speed to make sure player is on the block
+            while (!map.isOnGroundMainMenu(mario.x, mario.y, mario.size/2.0, 0)) { // to prevent hovering, we need to decrease player's y position one by one independent of the speed to make sure player is on the block
                 mario.y -= 1;
             }
             mario.speedY=0;

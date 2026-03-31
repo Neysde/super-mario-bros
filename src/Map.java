@@ -45,13 +45,14 @@ public class Map {
     }
 
     // checks whether the player is on ground
-    public boolean isOnGround(int x, int y, double playerHalfSize, double speedY, int worldW, int worldH,int teleportMode){
+    public boolean isOnGround(int x, int y, double playerHalfSize, double speedY, int worldW, int teleportMode){
         double nextY=y+speedY-1.0; // it basically to check is there a ground below the player
         int[][] lowerPortal={portals[2],portals[3]};
 
         if (x-playerHalfSize<0 || x+playerHalfSize>worldW){ // if player is out of the canvas width, cannot be on ground
             return false;
         }
+
         if (speedY>0){ // it must be jumping
             return false;
         }
@@ -64,19 +65,19 @@ public class Map {
     }
 
     // main menu ground check similar logic but its not checking the obstacles and portals
-    public boolean isOnGroundMainMenu(int x, int y, double playerHalfSize, double speedY, int worldH, int worldW){
+    public boolean isOnGroundMainMenu(int x, int y, double playerHalfSize, double speedY){
 
         double nextY=y+speedY-1.0; // it basically checks is there a ground below the player
-
-        if (nextY-playerHalfSize<120){
+        
+        if (nextY-playerHalfSize<120){ // ground is at y=120
             return true;
         }
         return false;
     }
 
-
-    public boolean isValidXMoveMainMenu(int x,int y, double playerHalfSize, double speedX, int worldW){
-        double nextX = x+speedX;
+    
+    // main menu x axis movement check (it does not have any obstacle collision checking)
+    public boolean isValidXMoveMainMenu(int nextX,int y, double playerHalfSize, int worldW){
 
         if (nextX-playerHalfSize<0 || nextX+playerHalfSize>worldW){
             return false;
@@ -85,7 +86,8 @@ public class Map {
         return true;
     }
 
-    public boolean isOnCeiling(int x, int y, double playerHalfSize, double speedY, int worldW, int worldH, int teleportMode){
+    // checks whether the player hit the ceiling
+    public boolean isOnCeiling(int x, int y, double playerHalfSize, double speedY, int worldW, int worldH){
         double nextY=y+speedY+1.0; // it basically to check is there a ceiling above the player
         if (speedY < 0){ // it cannot be on ceiling if player's speed is less than 0
             return false;
@@ -115,35 +117,35 @@ public class Map {
         return !checkCollision(nextX,y,playerHalfSize,obstacles); // reverses the obstacle collision check's value because this represents the valid move
     }
 
+    // assigns the proper teleportation states according to whether player is entered the portals
     public void handleTeleport(Mario mario, boolean isSPressed){
         int playerHalfSize = mario.size/2;
         int nextX = mario.x+(int)mario.speedX;
         int nextY = mario.y+(int)mario.speedY;
 
-        int marioNextLeft = nextX-playerHalfSize;
-        int marioNextRight = nextX+playerHalfSize;
         int marioNextTop = nextY+playerHalfSize;
         int marioNextBottom = nextY-playerHalfSize;
 
         int[][] upperPortal = {portals[0],portals[1]};
         int[][] lowerPortal = {portals[2],portals[3]};
 
-        if (mario.speedY > 0 && mario.teleportMode==0){
+        if (mario.speedY > 0 && mario.teleportMode==0){ // if player is jumping and not teleporting
             if (marioNextTop>=upperPortal[1][1]-upperPortal[1][3] && nextX>=upperPortal[1][0]-upperPortal[1][2] && nextX<=upperPortal[1][0]+upperPortal[1][2]){ //instead of left and right sides of the player, use only center of the player to make portal entries easier without trying to pixel perfecting.
-                mario.x=upperPortal[0][0];
-                mario.teleportMode=2;
+                mario.x=upperPortal[0][0]; // centers the player to the upper portal
+                mario.teleportMode=2; // upper teleport mode
             }
         }
 
         if (mario.speedY <= 0 && mario.teleportMode==0){
             if (isSPressed && marioNextBottom<=lowerPortal[1][1]+lowerPortal[1][3] && nextX>=lowerPortal[1][0]-lowerPortal[1][2] && nextX<=lowerPortal[1][0]+lowerPortal[1][2]){
-                mario.x=lowerPortal[0][0];
-                mario.teleportMode=1;
+                mario.x=lowerPortal[0][0]; // centers the player to the lower portal
+                mario.teleportMode=1; // lower teleport mode
             }
         }
 
     }
 
+    // checks whether the player is on the exit pipe
     public boolean isOnLowerPipe(Mario mario){
         int nextX = mario.x + (int) mario.speedX;
         int[][] lowerPipe = {pipes[2],pipes[3]};
@@ -151,18 +153,20 @@ public class Map {
         return checkCollision(nextX, mario.y,0,lowerPipe); // eliminate nextY because its mostly happening in x axis and eliminate player halfsize because this is not a regular collision check we want to give the effect of entering the pipe before displaying finish message
     }
 
+    // collects the coins that player collided
     public int collectCoin(Mario mario,Level level) {
         int[][] coins = level.getCoins();
+        // checks for all coins in the array one by one
         for (int i=0;i<coins.length;i++){
-
             if (Math.abs(mario.x-coins[i][0])<=(mario.size/2.0+coins[i][2]) && Math.abs(mario.y-coins[i][1])<=(mario.size/2.0+coins[i][3])){ // checks for x and y axis collisions (obstacle[0] is the x coordinate of obstacle and obstacle[2] is the half width)
-                coins[i][1]=-9999;
-                return 1;
+                coins[i][1]=-9999; // changes the collided coin's y coordinate to an off-canvas coordinate to make sure it is not drawn to the screen after collected
+                return 1; // can only collect 1 coin at each time
             }
         }
-        return 0;
+        return 0; // if not collided any of the coins
     }
 
+    // draws coins to the canvas
     public void drawCoin(Level level){
         int[][] coins = level.getCoins();
         // coin draw
@@ -171,6 +175,7 @@ public class Map {
         }
     }
 
+    // getter function for portal array
     public int[][] getPortals() {
         return portals;
     }
